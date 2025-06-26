@@ -41,7 +41,7 @@
     <div class="container mx-auto px-4 py-8">
         <header class="text-center mb-8">
             <h1 class="text-4xl font-bold text-yellow-400 mb-2">Unique Item Dust Calculator</h1>
-            <p class="text-lg text-gray-400">Find the cheapest unique items to vendor for Thaumaturgic Dust.</p>
+            <p class="text-lg text-gray-400">Find the most efficient unique items to vendor for Thaumaturgic Dust.</p>
         </header>
 
         <main>
@@ -65,9 +65,9 @@
                                 <th id="sort-name" class="p-4">Item Name</th>
                                 <th id="sort-chaos" class="p-4 text-right">Chaos Value</th>
                                 <th id="sort-dust84" class="p-4 text-right">Dust (ilvl 84)</th>
-                                <th id="sort-efficiency84" class="p-4 text-right">Chaos per Dust</th>
+                                <th id="sort-efficiency84" class="p-4 text-right">Dust per Chaos</th>
                                 <th id="sort-dust84q20" class="p-4 text-right">Dust (ilvl 84 q20)</th>
-                                <th id="sort-efficiency84q20" class="p-4 text-right">Chaos per Dust (q20)</th>
+                                <th id="sort-efficiency84q20" class="p-4 text-right">Dust per Chaos (q20)</th>
                             </tr>
                         </thead>
                         <tbody id="item-table-body">
@@ -78,7 +78,7 @@
                                           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                         </svg>
-                                        <span>Loading league information...</span>
+                                        <span>Loading local item data...</span>
                                     </div>
                                 </td>
                             </tr>
@@ -90,19 +90,10 @@
 
         <footer class="text-center mt-8 text-sm text-gray-500">
             <p>Data sourced from <a href="https://poe.ninja" target="_blank" rel="noopener noreferrer" class="text-yellow-500 hover:underline">poe.ninja</a>. Not affiliated with Grinding Gear Games.</p>
-            <p>Static item dust values are managed within the page script.</p>
         </footer>
     </div>
 
     <script>
-        // --- CONFIGURATION ---
-        const STATIC_ITEM_DATA = [
-            { "name": "Original Sin", "value": 1128.89, "valueilvl84": 2257780, "valueilvl84q20": 2709336 },
-            { "name": "Replica Cortex", "value": 1064.09, "valueilvl84": 2128180, "valueilvl84q20": 2553816 },
-            { "name": "Headhunter", "value": 891.16, "valueilvl84": 1782320, "valueilvl84q20": 2138784 },
-            { "name": "Mageblood", "value": 891.16, "valueilvl84": 1782320, "valueilvl84q20": 2138784 }
-        ];
-
         // --- DOM ELEMENTS ---
         const tableBody = document.getElementById('item-table-body');
         const lastUpdatedElem = document.getElementById('last-updated');
@@ -116,20 +107,44 @@
         const sortDust84q20 = document.getElementById('sort-dust84q20');
         const sortEfficiency84q20 = document.getElementById('sort-efficiency84q20');
         
-        let currentSort = { key: 'efficiency84', order: 'asc' };
+        // Global variable to hold our static item data once fetched
+        let STATIC_ITEM_DATA = [];
+        let currentSort = { key: 'efficiency84', order: 'desc' };
         let allItemData = [];
 
         // --- FUNCTIONS ---
 
         /**
+         * Fetches the local item data from the JSON file.
+         */
+        async function fetchStaticData() {
+            try {
+                // Fetch the JSON file from the root of the site
+                const response = await fetch('./item_data.json');
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                STATIC_ITEM_DATA = await response.json();
+                console.log(`Successfully loaded ${STATIC_ITEM_DATA.length} items from JSON file.`);
+            } catch (error) {
+                console.error('Error fetching static item data:', error);
+                tableBody.innerHTML = `<tr><td colspan="6" class="text-center p-8 text-red-400"><strong>Error:</strong> Could not load the local <strong>item_data.json</strong> file. Please ensure it is in the same directory as index.html.</td></tr>`;
+                // Stop further execution if the core data is missing
+                throw error;
+            }
+        }
+
+        /**
          * Fetches a list of active leagues from the PoE API.
          */
         async function fetchLeagues() {
-            // FIX: Removed the CORS proxy. Making a direct API call.
+            tableBody.innerHTML = `<tr><td colspan="6" class="text-center p-8"><span>Loading league information...</span></td></tr>`;
             const leagueApiUrl = 'https://api.pathofexile.com/leagues?compact=1';
+            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(leagueApiUrl)}`;
             try {
-                const response = await fetch(leagueApiUrl);
-                if (!response.ok) throw new Error('Network response was not ok');
+                const response = await fetch(proxyUrl);
+                if (!response.ok) throw new Error('Network response from proxy was not ok');
+                
                 const leagues = await response.json();
                 
                 const validLeagues = leagues.filter(l => 
@@ -152,7 +167,7 @@
             } catch (error) {
                 console.error("Failed to fetch leagues:", error);
                 lastUpdatedElem.textContent = 'Failed to load leagues.';
-                tableBody.innerHTML = `<tr><td colspan="6" class="text-center p-8 text-red-400">Error: Could not fetch league data from Path of Exile API. This might be a CORS issue or the API is down.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="6" class="text-center p-8 text-red-400">Error: Could not fetch league data. The CORS proxy might be down or the API is unavailable.</td></tr>`;
             }
         }
 
@@ -165,10 +180,10 @@
             lastUpdatedElem.textContent = `Updating data for ${league}...`;
 
             const itemTypes = ['UniqueWeapon', 'UniqueArmour', 'UniqueAccessory'];
-            // FIX: Removed the CORS proxy. Making direct API calls.
             const fetchPromises = itemTypes.map(type => {
                 const ninjaApiUrl = `https://poe.ninja/api/data/itemoverview?league=${league}&type=${type}`;
-                return fetch(ninjaApiUrl);
+                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(ninjaApiUrl)}`;
+                return fetch(proxyUrl);
             });
 
             try {
@@ -176,7 +191,7 @@
                 
                 for (const response of responses) {
                     if (!response.ok) {
-                        throw new Error(`Network response from poe.ninja was not ok (${response.status})`);
+                        throw new Error(`Network response from proxy was not ok (${response.status})`);
                     }
                 }
 
@@ -192,7 +207,7 @@
 
             } catch (error) {
                 console.error("Failed to fetch data from poe.ninja:", error);
-                tableBody.innerHTML = `<tr><td colspan="6" class="text-center p-8 text-red-400">Error: Could not fetch data from poe.ninja. The API might be down or the league has ended.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="6" class="text-center p-8 text-red-400">Error: Could not fetch data from poe.ninja. The API might be down, the league has ended, or the proxy is unavailable.</td></tr>`;
                 lastUpdatedElem.textContent = 'Failed to update.';
             }
         }
@@ -210,8 +225,8 @@
                 }
                 
                 const chaosValue = ninjaItem.chaosValue;
-                const efficiency84 = localItem.valueilvl84 > 0 ? (chaosValue / localItem.valueilvl84) : 0;
-                const efficiency84q20 = localItem.valueilvl84q20 > 0 ? (chaosValue / localItem.valueilvl84q20) : 0;
+                const efficiency84 = chaosValue > 0 ? (localItem.valueilvl84 / chaosValue) : 0;
+                const efficiency84q20 = chaosValue > 0 ? (localItem.valueilvl84q20 / chaosValue) : 0;
 
                 return {
                     name: localItem.name,
@@ -226,7 +241,6 @@
 
             renderTable();
         }
-
 
         /**
          * Renders the final data into the HTML table.
@@ -250,8 +264,7 @@
                 return;
             }
             
-            const bestEfficiency = allItemData.length > 0 ? allItemData.filter(item => item[currentSort.key] > 0).sort((a, b) => a[currentSort.key] - b[currentSort.key])[0]?.[currentSort.key] : 0;
-
+            const bestEfficiency = allItemData.length > 0 ? allItemData[0][currentSort.key] : 0;
 
             allItemData.forEach((item, index) => {
                 const row = document.createElement('tr');
@@ -268,9 +281,9 @@
                     </td>
                     <td class="p-4 text-right text-green-400 font-semibold">${item.chaosValue.toLocaleString(undefined, {maximumFractionDigits: 0})}</td>
                     <td class="p-4 text-right text-cyan-400">${item.dust84.toLocaleString()}</td>
-                    <td class="p-4 text-right font-bold ${isBest84 ? 'text-yellow-400 text-lg' : ''}">${item.efficiency84.toFixed(4)}</td>
+                    <td class="p-4 text-right font-bold ${isBest84 ? 'text-yellow-400 text-lg' : ''}">${item.efficiency84.toLocaleString(undefined, {maximumFractionDigits: 0})}</td>
                     <td class="p-4 text-right text-cyan-400">${item.dust84q20.toLocaleString()}</td>
-                    <td class="p-4 text-right font-bold ${isBest84q20 ? 'text-yellow-400 text-lg' : ''}">${item.efficiency84q20.toFixed(4)}</td>
+                    <td class="p-4 text-right font-bold ${isBest84q20 ? 'text-yellow-400 text-lg' : ''}">${item.efficiency84q20.toLocaleString(undefined, {maximumFractionDigits: 0})}</td>
                 `;
                 tableBody.appendChild(row);
             });
@@ -284,14 +297,22 @@
             if (currentSort.key === key) {
                 currentSort.order = currentSort.order === 'asc' ? 'desc' : 'asc';
             } else {
-                currentSort.key = key;
-                currentSort.order = key.includes('efficiency') ? 'asc' : 'desc';
+                currentSort.order = key.includes('efficiency') ? 'desc' : 'asc';
             }
+            currentSort.key = key;
             renderTable();
         }
 
+        /**
+         * Main function to initialize the application
+         */
+        async function initializeApp() {
+            await fetchStaticData();
+            await fetchLeagues();
+        }
+
         // --- EVENT LISTENERS ---
-        document.addEventListener('DOMContentLoaded', fetchLeagues);
+        document.addEventListener('DOMContentLoaded', initializeApp);
         leagueSelect.addEventListener('change', (e) => fetchData(e.target.value));
 
         sortName.addEventListener('click', () => setSort('name'));
