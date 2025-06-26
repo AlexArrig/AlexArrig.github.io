@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PoE Thaumaturgic Dust Efficiency Calculator</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Use Inter font as the default */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* A dark theme fitting for PoE */
+            color: #e2e8f0;
+        }
+        /* Style for the table headers */
+        th {
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+        }
+        th:hover {
+            background-color: #4a5568;
+        }
+        /* Simple animation for table rows appearing */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in-row {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header Section -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-yellow-400 mb-2">Thaumaturgic Dust Calculator</h1>
+            <p class="text-lg text-gray-400">Find the most cost-effective items to vendor for Thaumaturgic Dust.</p>
+        </header>
+
+        <main>
+            <!-- Dashboard/Table Section -->
+            <div class="bg-gray-800 shadow-2xl rounded-lg overflow-hidden">
+                <div class="p-4 sm:p-6 flex justify-between items-center border-b border-gray-700">
+                    <div>
+                        <h2 class="text-xl font-semibold">Efficiency Dashboard</h2>
+                        <p id="last-updated" class="text-sm text-gray-500">Updating data...</p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                         <label for="league-select" class="text-sm font-medium">League:</label>
+                         <select id="league-select" class="bg-gray-700 border border-gray-600 rounded-md px-3 py-1.5 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                             <!-- Options will be populated by JS -->
+                         </select>
+                    </div>
+                </div>
+
+                <!-- Table to display item data -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="bg-gray-700 text-xs text-gray-300 uppercase tracking-wider">
+                            <tr>
+                                <th id="sort-name" class="p-4">Item Name</th>
+                                <th id="sort-dust" class="p-4 text-right">Dust Value</th>
+                                <th id="sort-chaos" class="p-4 text-right">Chaos Value</th>
+                                <th id="sort-efficiency" class="p-4 text-right">Dust per Chaos</th>
+                            </tr>
+                        </thead>
+                        <tbody id="item-table-body">
+                            <!-- Loading state -->
+                            <tr>
+                                <td colspan="4" class="text-center p-8">
+                                    <div class="flex justify-center items-center">
+                                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        <span>Loading live data from poe.ninja...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer Section -->
+        <footer class="text-center mt-8 text-sm text-gray-500">
+            <p>Data sourced from <a href="https://poe.ninja" target="_blank" rel="noopener noreferrer" class="text-yellow-500 hover:underline">poe.ninja</a>. Not affiliated with Grinding Gear Games.</p>
+            <p>Custom Domain Tip: You can host this file for free on services like <a href="https://pages.github.com/" target="_blank" rel="noopener noreferrer" class="text-yellow-500 hover:underline">GitHub Pages</a> or <a href="https://www.netlify.com/" target="_blank" rel="noopener noreferrer" class="text-yellow-500 hover:underline">Netlify</a> to use a custom domain.</p>
+        </footer>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        // This is the list of items we want to track.
+        // You can add or remove items here. 'name' must match the poe.ninja name.
+        const ITEMS_TO_TRACK = [
+            { name: "Chromatic Orb", dustValue: 1 },
+            { name: "Jeweller's Orb", dustValue: 2 },
+            { name: "Orb of Alteration", dustValue: 4 },
+            { name: "Orb of Chance", dustValue: 6 },
+            { name: "Orb of Fusing", dustValue: 8 },
+            { name: "Orb of Alchemy", dustValue: 10 },
+            { name: "Orb of Scouring", dustValue: 12 },
+            { name: "Regal Orb", dustValue: 15 },
+            { name: "Blessed Orb", dustValue: 16 },
+            { name: "Vaal Orb", dustValue: 20 },
+            { name: "Orb of Regret", dustValue: 24 },
+            { name: "Gemcutter's Prism", dustValue: 30 },
+            { name: "Chaos Orb", dustValue: 40 }, // For reference
+        ];
+
+        // --- DOM ELEMENTS ---
+        const tableBody = document.getElementById('item-table-body');
+        const lastUpdatedElem = document.getElementById('last-updated');
+        const leagueSelect = document.getElementById('league-select');
+
+        // Sorting elements
+        const sortName = document.getElementById('sort-name');
+        const sortDust = document.getElementById('sort-dust');
+        const sortChaos = document.getElementById('sort-chaos');
+        const sortEfficiency = document.getElementById('sort-efficiency');
+        
+        let currentSort = { key: 'efficiency', order: 'desc' };
+        let allItemData = [];
+
+        // --- FUNCTIONS ---
+
+        /**
+         * Fetches a list of active leagues from the PoE API.
+         */
+        async function fetchLeagues() {
+            try {
+                const response = await fetch('https://api.pathofexile.com/leagues?type=main&compact=1');
+                if (!response.ok) throw new Error('Network response was not ok');
+                const leagues = await response.json();
+                
+                // Filter for current, non-SSF leagues
+                const validLeagues = leagues.filter(l => 
+                    !l.id.includes('SSF') && !l.id.includes('Hardcore') && !l.id.includes('Ruthless')
+                );
+
+                leagueSelect.innerHTML = validLeagues.map(league => 
+                    `<option value="${league.id}">${league.id}</option>`
+                ).join('');
+                
+                // Set the default to the first non-HC, non-SSF, non-Ruthless league (usually the current trade league)
+                if (validLeagues.length > 0) {
+                   fetchData(validLeagues[0].id);
+                } else {
+                   tableBody.innerHTML = `<tr><td colspan="4" class="text-center p-8 text-red-400">Could not find any active leagues.</td></tr>`;
+                }
+
+            } catch (error) {
+                console.error("Failed to fetch leagues:", error);
+                lastUpdatedElem.textContent = 'Failed to load leagues.';
+                tableBody.innerHTML = `<tr><td colspan="4" class="text-center p-8 text-red-400">Error: Could not fetch league data from Path of Exile API.</td></tr>`;
+            }
+        }
+
+        /**
+         * Fetches data from the poe.ninja API for a given league.
+         * @param {string} league - The league to fetch data for.
+         */
+        async function fetchData(league) {
+            tableBody.innerHTML = `<tr><td colspan="4" class="text-center p-8"><div class="flex justify-center items-center"><svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Loading live data for ${league}...</span></div></td></tr>`;
+            lastUpdatedElem.textContent = `Updating data for ${league}...`;
+
+            try {
+                // We fetch both Currency and Fragments as some items might be in either category
+                const [currencyRes, fragmentRes] = await Promise.all([
+                    fetch(`https://poe.ninja/api/data/currencyoverview?league=${league}&type=Currency`),
+                    fetch(`https://poe.ninja/api/data/currencyoverview?league=${league}&type=Fragment`)
+                ]);
+
+                if (!currencyRes.ok || !fragmentRes.ok) {
+                    throw new Error('Network response from poe.ninja was not ok');
+                }
+
+                const currencyData = await currencyRes.json();
+                const fragmentData = await fragmentRes.json();
+                const ninjaApiData = [...currencyData.lines, ...fragmentData.lines];
+                
+                processData(ninjaApiData);
+
+                lastUpdatedElem.textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+
+            } catch (error) {
+                console.error("Failed to fetch data from poe.ninja:", error);
+                tableBody.innerHTML = `<tr><td colspan="4" class="text-center p-8 text-red-400">Error: Could not fetch data from poe.ninja. They might be down, or the league has not started yet.</td></tr>`;
+                lastUpdatedElem.textContent = 'Failed to update.';
+            }
+        }
+
+        /**
+         * Processes the API data and combines it with our local item list.
+         * @param {Array} ninjaApiData - The combined data from poe.ninja API calls.
+         */
+        function processData(ninjaApiData) {
+            const ninjaMap = new Map(ninjaApiData.map(item => [item.currencyTypeName, item]));
+
+            allItemData = ITEMS_TO_TRACK.map(localItem => {
+                const ninjaItem = ninjaMap.get(localItem.name);
+                const chaosValue = ninjaItem ? ninjaItem.chaosEquivalent : 0;
+                // Avoid division by zero
+                const efficiency = chaosValue > 0 ? (localItem.dustValue / chaosValue) : 0;
+
+                return {
+                    ...localItem,
+                    chaosValue: chaosValue,
+                    efficiency: efficiency,
+                    icon: ninjaItem ? ninjaItem.detailsId : null // Using detailsId for potential icon links
+                };
+            });
+
+            renderTable();
+        }
+
+        /**
+         * Renders the final data into the HTML table.
+         */
+        function renderTable() {
+            // Sort the data based on the current sort state
+            allItemData.sort((a, b) => {
+                const valA = a[currentSort.key];
+                const valB = b[currentSort.key];
+                
+                if (currentSort.order === 'asc') {
+                    return valA > valB ? 1 : -1;
+                } else {
+                    return valA < valB ? 1 : -1;
+                }
+            });
+
+            // Clear previous table content
+            tableBody.innerHTML = '';
+
+            if (allItemData.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="4" class="text-center p-8">No data available.</td></tr>`;
+                return;
+            }
+
+            allItemData.forEach((item, index) => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-gray-700 hover:bg-gray-700/50 fade-in-row';
+                // Add a slight delay to each row for a staggered animation effect
+                row.style.animationDelay = `${index * 0.05}s`;
+
+                const isTopEfficiency = item.efficiency > 0 && item.efficiency === allItemData[0].efficiency;
+
+                row.innerHTML = `
+                    <td class="p-4 font-medium flex items-center">
+                        ${item.name}
+                        ${isTopEfficiency ? '<span class="ml-2 text-xs bg-yellow-500 text-gray-900 font-bold py-0.5 px-1.5 rounded-full">BEST</span>' : ''}
+                    </td>
+                    <td class="p-4 text-right text-cyan-400">${item.dustValue.toLocaleString()}</td>
+                    <td class="p-4 text-right text-green-400">${item.chaosValue.toFixed(2)}</td>
+                    <td class="p-4 text-right font-semibold ${isTopEfficiency ? 'text-yellow-400' : ''}">${item.efficiency.toFixed(2)}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+        
+        /**
+         * Sets the current sort key and order, then re-renders the table.
+         * @param {string} key - The key to sort by (e.g., 'name', 'efficiency').
+         */
+        function setSort(key) {
+            if (currentSort.key === key) {
+                currentSort.order = currentSort.order === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.key = key;
+                currentSort.order = 'desc'; // Default to descending for new columns
+            }
+            renderTable();
+        }
+
+        // --- EVENT LISTENERS ---
+        document.addEventListener('DOMContentLoaded', fetchLeagues);
+        leagueSelect.addEventListener('change', (e) => fetchData(e.target.value));
+
+        sortName.addEventListener('click', () => setSort('name'));
+        sortDust.addEventListener('click', () => setSort('dustValue'));
+        sortChaos.addEventListener('click', () => setSort('chaosValue'));
+        sortEfficiency.addEventListener('click', () => setSort('efficiency'));
+
+    </script>
+</body>
+</html>
+
