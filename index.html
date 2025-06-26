@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PoE Thaumaturgic Dust Efficiency Calculator</title>
+    <title>PoE Unique Item Dust Efficiency Calculator</title>
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Inter -->
@@ -21,6 +21,7 @@
         th {
             cursor: pointer;
             transition: background-color 0.2s ease-in-out;
+            white-space: nowrap; /* Prevent headers from wrapping */
         }
         th:hover {
             background-color: #4a5568;
@@ -38,16 +39,14 @@
 <body class="antialiased">
 
     <div class="container mx-auto px-4 py-8">
-        <!-- Header Section -->
         <header class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-yellow-400 mb-2">Thaumaturgic Dust Calculator</h1>
-            <p class="text-lg text-gray-400">Find the most cost-effective items to vendor for Thaumaturgic Dust.</p>
+            <h1 class="text-4xl font-bold text-yellow-400 mb-2">Unique Item Dust Calculator</h1>
+            <p class="text-lg text-gray-400">Find the cheapest unique items to vendor for Thaumaturgic Dust.</p>
         </header>
 
         <main>
-            <!-- Dashboard/Table Section -->
             <div class="bg-gray-800 shadow-2xl rounded-lg overflow-hidden">
-                <div class="p-4 sm:p-6 flex justify-between items-center border-b border-gray-700">
+                <div class="p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-700 space-y-4 sm:space-y-0">
                     <div>
                         <h2 class="text-xl font-semibold">Efficiency Dashboard</h2>
                         <p id="last-updated" class="text-sm text-gray-500">Updating data...</p>
@@ -55,32 +54,31 @@
                     <div class="flex items-center space-x-4">
                          <label for="league-select" class="text-sm font-medium">League:</label>
                          <select id="league-select" class="bg-gray-700 border border-gray-600 rounded-md px-3 py-1.5 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500">
-                             <!-- Options will be populated by JS -->
-                         </select>
+                             </select>
                     </div>
                 </div>
 
-                <!-- Table to display item data -->
                 <div class="overflow-x-auto">
                     <table class="w-full text-left">
                         <thead class="bg-gray-700 text-xs text-gray-300 uppercase tracking-wider">
                             <tr>
                                 <th id="sort-name" class="p-4">Item Name</th>
-                                <th id="sort-dust" class="p-4 text-right">Dust Value</th>
                                 <th id="sort-chaos" class="p-4 text-right">Chaos Value</th>
-                                <th id="sort-efficiency" class="p-4 text-right">Dust per Chaos</th>
+                                <th id="sort-dust84" class="p-4 text-right">Dust (ilvl 84)</th>
+                                <th id="sort-efficiency84" class="p-4 text-right">Chaos per Dust</th>
+                                <th id="sort-dust84q20" class="p-4 text-right">Dust (ilvl 84 q20)</th>
+                                <th id="sort-efficiency84q20" class="p-4 text-right">Chaos per Dust (q20)</th>
                             </tr>
                         </thead>
                         <tbody id="item-table-body">
-                            <!-- Loading state -->
                             <tr>
-                                <td colspan="4" class="text-center p-8">
+                                <td colspan="6" class="text-center p-8">
                                     <div class="flex justify-center items-center">
                                         <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                         </svg>
-                                        <span>Loading live data from poe.ninja...</span>
+                                        <span>Loading league information...</span>
                                     </div>
                                 </td>
                             </tr>
@@ -90,31 +88,19 @@
             </div>
         </main>
 
-        <!-- Footer Section -->
         <footer class="text-center mt-8 text-sm text-gray-500">
             <p>Data sourced from <a href="https://poe.ninja" target="_blank" rel="noopener noreferrer" class="text-yellow-500 hover:underline">poe.ninja</a>. Not affiliated with Grinding Gear Games.</p>
-            <p>Custom Domain Tip: You can host this file for free on services like <a href="https://pages.github.com/" target="_blank" rel="noopener noreferrer" class="text-yellow-500 hover:underline">GitHub Pages</a> or <a href="https://www.netlify.com/" target="_blank" rel="noopener noreferrer" class="text-yellow-500 hover:underline">Netlify</a> to use a custom domain.</p>
+            <p>Static item dust values are managed within the page script.</p>
         </footer>
     </div>
 
     <script>
         // --- CONFIGURATION ---
-        // This is the list of items we want to track.
-        // You can add or remove items here. 'name' must match the poe.ninja name.
-        const ITEMS_TO_TRACK = [
-            { name: "Chromatic Orb", dustValue: 1 },
-            { name: "Jeweller's Orb", dustValue: 2 },
-            { name: "Orb of Alteration", dustValue: 4 },
-            { name: "Orb of Chance", dustValue: 6 },
-            { name: "Orb of Fusing", dustValue: 8 },
-            { name: "Orb of Alchemy", dustValue: 10 },
-            { name: "Orb of Scouring", dustValue: 12 },
-            { name: "Regal Orb", dustValue: 15 },
-            { name: "Blessed Orb", dustValue: 16 },
-            { name: "Vaal Orb", dustValue: 20 },
-            { name: "Orb of Regret", dustValue: 24 },
-            { name: "Gemcutter's Prism", dustValue: 30 },
-            { name: "Chaos Orb", dustValue: 40 }, // For reference
+        const STATIC_ITEM_DATA = [
+            { "name": "Original Sin", "value": 1128.89, "valueilvl84": 2257780, "valueilvl84q20": 2709336 },
+            { "name": "Replica Cortex", "value": 1064.09, "valueilvl84": 2128180, "valueilvl84q20": 2553816 },
+            { "name": "Headhunter", "value": 891.16, "valueilvl84": 1782320, "valueilvl84q20": 2138784 },
+            { "name": "Mageblood", "value": 891.16, "valueilvl84": 1782320, "valueilvl84q20": 2138784 }
         ];
 
         // --- DOM ELEMENTS ---
@@ -124,11 +110,13 @@
 
         // Sorting elements
         const sortName = document.getElementById('sort-name');
-        const sortDust = document.getElementById('sort-dust');
         const sortChaos = document.getElementById('sort-chaos');
-        const sortEfficiency = document.getElementById('sort-efficiency');
+        const sortDust84 = document.getElementById('sort-dust84');
+        const sortEfficiency84 = document.getElementById('sort-efficiency84');
+        const sortDust84q20 = document.getElementById('sort-dust84q20');
+        const sortEfficiency84q20 = document.getElementById('sort-efficiency84q20');
         
-        let currentSort = { key: 'efficiency', order: 'desc' };
+        let currentSort = { key: 'efficiency84', order: 'asc' };
         let allItemData = [];
 
         // --- FUNCTIONS ---
@@ -137,31 +125,34 @@
          * Fetches a list of active leagues from the PoE API.
          */
         async function fetchLeagues() {
+            // FIX: Removed the CORS proxy. Making a direct API call.
+            const leagueApiUrl = 'https://api.pathofexile.com/leagues?compact=1';
             try {
-                const response = await fetch('https://api.pathofexile.com/leagues?type=main&compact=1');
+                const response = await fetch(leagueApiUrl);
                 if (!response.ok) throw new Error('Network response was not ok');
                 const leagues = await response.json();
                 
-                // Filter for current, non-SSF leagues
                 const validLeagues = leagues.filter(l => 
-                    !l.id.includes('SSF') && !l.id.includes('Hardcore') && !l.id.includes('Ruthless')
+                    !l.id.includes('SSF') && !l.id.includes('Hardcore') && !l.id.includes('Ruthless') && l.id.toLowerCase() !== 'standard'
                 );
 
                 leagueSelect.innerHTML = validLeagues.map(league => 
                     `<option value="${league.id}">${league.id}</option>`
                 ).join('');
                 
-                // Set the default to the first non-HC, non-SSF, non-Ruthless league (usually the current trade league)
                 if (validLeagues.length > 0) {
-                   fetchData(validLeagues[0].id);
+                   const mercenaryLeague = validLeagues.find(l => l.id === 'Mercenaries');
+                   const defaultLeague = mercenaryLeague ? mercenaryLeague.id : validLeagues[0].id;
+                   leagueSelect.value = defaultLeague;
+                   fetchData(defaultLeague);
                 } else {
-                   tableBody.innerHTML = `<tr><td colspan="4" class="text-center p-8 text-red-400">Could not find any active leagues.</td></tr>`;
+                   tableBody.innerHTML = `<tr><td colspan="6" class="text-center p-8 text-red-400">Could not find any active trade leagues.</td></tr>`;
                 }
 
             } catch (error) {
                 console.error("Failed to fetch leagues:", error);
                 lastUpdatedElem.textContent = 'Failed to load leagues.';
-                tableBody.innerHTML = `<tr><td colspan="4" class="text-center p-8 text-red-400">Error: Could not fetch league data from Path of Exile API.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="6" class="text-center p-8 text-red-400">Error: Could not fetch league data from Path of Exile API. This might be a CORS issue or the API is down.</td></tr>`;
             }
         }
 
@@ -170,64 +161,77 @@
          * @param {string} league - The league to fetch data for.
          */
         async function fetchData(league) {
-            tableBody.innerHTML = `<tr><td colspan="4" class="text-center p-8"><div class="flex justify-center items-center"><svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Loading live data for ${league}...</span></div></td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="6" class="text-center p-8"><div class="flex justify-center items-center"><svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Loading live data for ${league}...</span></div></td></tr>`;
             lastUpdatedElem.textContent = `Updating data for ${league}...`;
 
-            try {
-                // We fetch both Currency and Fragments as some items might be in either category
-                const [currencyRes, fragmentRes] = await Promise.all([
-                    fetch(`https://poe.ninja/api/data/currencyoverview?league=${league}&type=Currency`),
-                    fetch(`https://poe.ninja/api/data/currencyoverview?league=${league}&type=Fragment`)
-                ]);
+            const itemTypes = ['UniqueWeapon', 'UniqueArmour', 'UniqueAccessory'];
+            // FIX: Removed the CORS proxy. Making direct API calls.
+            const fetchPromises = itemTypes.map(type => {
+                const ninjaApiUrl = `https://poe.ninja/api/data/itemoverview?league=${league}&type=${type}`;
+                return fetch(ninjaApiUrl);
+            });
 
-                if (!currencyRes.ok || !fragmentRes.ok) {
-                    throw new Error('Network response from poe.ninja was not ok');
+            try {
+                const responses = await Promise.all(fetchPromises);
+                
+                for (const response of responses) {
+                    if (!response.ok) {
+                        throw new Error(`Network response from poe.ninja was not ok (${response.status})`);
+                    }
                 }
 
-                const currencyData = await currencyRes.json();
-                const fragmentData = await fragmentRes.json();
-                const ninjaApiData = [...currencyData.lines, ...fragmentData.lines];
-                
-                processData(ninjaApiData);
+                const jsonPromises = responses.map(res => res.json());
+                const allNinjaData = await Promise.all(jsonPromises);
 
-                lastUpdatedElem.textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+                const combinedLines = allNinjaData.flatMap(data => data.lines);
+                const ninjaMap = new Map(combinedLines.map(item => [item.name, item]));
+                
+                processAndCombineData(ninjaMap);
+
+                lastUpdatedElem.textContent = `Last updated for ${league}: ${new Date().toLocaleTimeString()}`;
 
             } catch (error) {
                 console.error("Failed to fetch data from poe.ninja:", error);
-                tableBody.innerHTML = `<tr><td colspan="4" class="text-center p-8 text-red-400">Error: Could not fetch data from poe.ninja. They might be down, or the league has not started yet.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="6" class="text-center p-8 text-red-400">Error: Could not fetch data from poe.ninja. The API might be down or the league has ended.</td></tr>`;
                 lastUpdatedElem.textContent = 'Failed to update.';
             }
         }
-
+        
         /**
-         * Processes the API data and combines it with our local item list.
-         * @param {Array} ninjaApiData - The combined data from poe.ninja API calls.
+         * Combines static data with live poe.ninja data and calculates efficiency.
+         * @param {Map} ninjaMap - A Map of unique items from poe.ninja.
          */
-        function processData(ninjaApiData) {
-            const ninjaMap = new Map(ninjaApiData.map(item => [item.currencyTypeName, item]));
-
-            allItemData = ITEMS_TO_TRACK.map(localItem => {
+        function processAndCombineData(ninjaMap) {
+            allItemData = STATIC_ITEM_DATA.map(localItem => {
                 const ninjaItem = ninjaMap.get(localItem.name);
-                const chaosValue = ninjaItem ? ninjaItem.chaosEquivalent : 0;
-                // Avoid division by zero
-                const efficiency = chaosValue > 0 ? (localItem.dustValue / chaosValue) : 0;
+
+                if (!ninjaItem || !ninjaItem.chaosValue) {
+                    return null;
+                }
+                
+                const chaosValue = ninjaItem.chaosValue;
+                const efficiency84 = localItem.valueilvl84 > 0 ? (chaosValue / localItem.valueilvl84) : 0;
+                const efficiency84q20 = localItem.valueilvl84q20 > 0 ? (chaosValue / localItem.valueilvl84q20) : 0;
 
                 return {
-                    ...localItem,
+                    name: localItem.name,
+                    icon: ninjaItem.icon,
                     chaosValue: chaosValue,
-                    efficiency: efficiency,
-                    icon: ninjaItem ? ninjaItem.detailsId : null // Using detailsId for potential icon links
+                    dust84: localItem.valueilvl84,
+                    efficiency84: efficiency84,
+                    dust84q20: localItem.valueilvl84q20,
+                    efficiency84q20: efficiency84q20
                 };
-            });
+            }).filter(item => item !== null);
 
             renderTable();
         }
+
 
         /**
          * Renders the final data into the HTML table.
          */
         function renderTable() {
-            // Sort the data based on the current sort state
             allItemData.sort((a, b) => {
                 const valA = a[currentSort.key];
                 const valB = b[currentSort.key];
@@ -239,30 +243,34 @@
                 }
             });
 
-            // Clear previous table content
             tableBody.innerHTML = '';
 
             if (allItemData.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="4" class="text-center p-8">No data available.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="6" class="text-center p-8">No matching items found on poe.ninja for the selected league. The market may be empty.</td></tr>`;
                 return;
             }
+            
+            const bestEfficiency = allItemData.length > 0 ? allItemData.filter(item => item[currentSort.key] > 0).sort((a, b) => a[currentSort.key] - b[currentSort.key])[0]?.[currentSort.key] : 0;
+
 
             allItemData.forEach((item, index) => {
                 const row = document.createElement('tr');
                 row.className = 'border-b border-gray-700 hover:bg-gray-700/50 fade-in-row';
-                // Add a slight delay to each row for a staggered animation effect
                 row.style.animationDelay = `${index * 0.05}s`;
 
-                const isTopEfficiency = item.efficiency > 0 && item.efficiency === allItemData[0].efficiency;
+                const isBest84 = item.efficiency84 > 0 && item.efficiency84 === bestEfficiency && currentSort.key === 'efficiency84';
+                const isBest84q20 = item.efficiency84q20 > 0 && item.efficiency84q20 === bestEfficiency && currentSort.key === 'efficiency84q20';
 
                 row.innerHTML = `
                     <td class="p-4 font-medium flex items-center">
-                        ${item.name}
-                        ${isTopEfficiency ? '<span class="ml-2 text-xs bg-yellow-500 text-gray-900 font-bold py-0.5 px-1.5 rounded-full">BEST</span>' : ''}
+                        <img src="${item.icon}" alt="${item.name}" class="h-10 w-10 mr-3 object-contain" onerror="this.style.display='none'">
+                        <span>${item.name}</span>
                     </td>
-                    <td class="p-4 text-right text-cyan-400">${item.dustValue.toLocaleString()}</td>
-                    <td class="p-4 text-right text-green-400">${item.chaosValue.toFixed(2)}</td>
-                    <td class="p-4 text-right font-semibold ${isTopEfficiency ? 'text-yellow-400' : ''}">${item.efficiency.toFixed(2)}</td>
+                    <td class="p-4 text-right text-green-400 font-semibold">${item.chaosValue.toLocaleString(undefined, {maximumFractionDigits: 0})}</td>
+                    <td class="p-4 text-right text-cyan-400">${item.dust84.toLocaleString()}</td>
+                    <td class="p-4 text-right font-bold ${isBest84 ? 'text-yellow-400 text-lg' : ''}">${item.efficiency84.toFixed(4)}</td>
+                    <td class="p-4 text-right text-cyan-400">${item.dust84q20.toLocaleString()}</td>
+                    <td class="p-4 text-right font-bold ${isBest84q20 ? 'text-yellow-400 text-lg' : ''}">${item.efficiency84q20.toFixed(4)}</td>
                 `;
                 tableBody.appendChild(row);
             });
@@ -270,14 +278,14 @@
         
         /**
          * Sets the current sort key and order, then re-renders the table.
-         * @param {string} key - The key to sort by (e.g., 'name', 'efficiency').
+         * @param {string} key - The key to sort by (e.g., 'name', 'efficiency84').
          */
         function setSort(key) {
             if (currentSort.key === key) {
                 currentSort.order = currentSort.order === 'asc' ? 'desc' : 'asc';
             } else {
                 currentSort.key = key;
-                currentSort.order = 'desc'; // Default to descending for new columns
+                currentSort.order = key.includes('efficiency') ? 'asc' : 'desc';
             }
             renderTable();
         }
@@ -287,11 +295,12 @@
         leagueSelect.addEventListener('change', (e) => fetchData(e.target.value));
 
         sortName.addEventListener('click', () => setSort('name'));
-        sortDust.addEventListener('click', () => setSort('dustValue'));
         sortChaos.addEventListener('click', () => setSort('chaosValue'));
-        sortEfficiency.addEventListener('click', () => setSort('efficiency'));
+        sortDust84.addEventListener('click', () => setSort('dust84'));
+        sortEfficiency84.addEventListener('click', () => setSort('efficiency84'));
+        sortDust84q20.addEventListener('click', () => setSort('dust84q20'));
+        sortEfficiency84q20.addEventListener('click', () => setSort('efficiency84q20'));
 
     </script>
 </body>
 </html>
-
