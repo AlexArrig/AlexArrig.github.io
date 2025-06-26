@@ -35,6 +35,64 @@
         .fade-in-row {
             animation: fadeIn 0.5s ease-in-out forwards;
         }
+
+        /* --- RESPONSIVE TABLE STYLES --- */
+        /* On screens smaller than 768px, transform table into cards */
+        @media (max-width: 768px) {
+            /* Hide the original table headers */
+            .responsive-table thead {
+                display: none;
+            }
+            /* Make each row a block-level card */
+            .responsive-table tr {
+                display: block;
+                margin-bottom: 1rem;
+                border-radius: 0.5rem;
+                background-color: #2d3748; /* Slightly lighter than the main bg */
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            }
+             /* Remove borders between rows, as they are now cards */
+            .responsive-table tr {
+                border-bottom: none;
+            }
+            .responsive-table td {
+                 border-bottom: 1px solid #4a5568;
+            }
+            .responsive-table tr td:last-child {
+                border-bottom: none;
+            }
+            /* Make each cell a block, allowing labels to appear on top */
+            .responsive-table td {
+                display: block;
+                text-align: right; /* Align value to the right */
+                padding-left: 50%; /* Make space for the label */
+                position: relative;
+            }
+            /* The magic: use the data-label attribute as the cell's label */
+            .responsive-table td::before {
+                content: attr(data-label); /* Use the data-label from the td */
+                position: absolute;
+                left: 0.75rem; /* Corresponds to p-3 in Tailwind */
+                width: 45%;
+                padding-right: 0.75rem;
+                text-align: left;
+                font-weight: 600;
+                color: #a0aec0; /* Lighter text for the label */
+            }
+            /* Make the first cell (Item Name) look like a card header */
+            .responsive-table td:first-child {
+                text-align: left; /* Keep name aligned to the left */
+                padding: 1rem;
+                font-size: 1.125rem; /* Larger font for the name */
+                font-weight: bold;
+                background-color: #4a5568;
+                border-top-left-radius: 0.5rem;
+                border-top-right-radius: 0.5rem;
+            }
+            .responsive-table td:first-child::before {
+                display: none; /* Don't show a label for the name */
+            }
+        }
     </style>
 </head>
 <body class="antialiased">
@@ -61,7 +119,8 @@
                 </div>
 
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left">
+                    <!-- Added a class to the table to target it with responsive CSS -->
+                    <table class="w-full text-left responsive-table">
                         <thead class="bg-gray-700 text-xs text-gray-300 uppercase tracking-wider">
                             <tr>
                                 <th id="sort-name" class="p-4">Item Name</th>
@@ -111,16 +170,11 @@
         const sortDust84q20 = document.getElementById('sort-dust84q20');
         const sortEfficiency84q20 = document.getElementById('sort-efficiency84q20');
         
-        // Global variable to hold our static item data once fetched
         let STATIC_ITEM_DATA = [];
         let currentSort = { key: 'efficiency84', order: 'desc' };
         let allItemData = [];
 
         // --- FUNCTIONS ---
-
-        /**
-         * Fetches the local item data from the JSON file.
-         */
         async function fetchStaticData() {
             try {
                 const response = await fetch('./item_data.json');
@@ -136,9 +190,6 @@
             }
         }
 
-        /**
-         * Fetches a list of active leagues from the PoE API.
-         */
         async function fetchLeagues() {
             tableBody.innerHTML = `<tr><td colspan="6" class="text-center p-8"><span>Loading league information...</span></td></tr>`;
             const desiredLeagues = ['Mercenaries', 'Hardcore Mercenaries', 'Standard', 'Hardcore'];
@@ -170,13 +221,10 @@
             } catch (error) {
                 console.error("Failed to fetch leagues:", error);
                 lastUpdatedElem.textContent = 'Failed to load leagues.';
-                tableBody.innerHTML = `<tr><td colspan="6" class="text-center p-8 text-red-400">Error: Could not fetch league data. The CORS proxy may be down or the API is unavailable.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="6" class="text-center p-8 text-red-400">Error: Could not fetch league data. The CORS proxy might be down or the API is unavailable.</td></tr>`;
             }
         }
 
-        /**
-         * Fetches data from the poe.ninja API for a given league.
-         */
         async function fetchData(league) {
             tableBody.innerHTML = `<tr><td colspan="6" class="text-center p-8"><div class="flex justify-center items-center"><svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Loading live data for ${league}...</span></div></td></tr>`;
             lastUpdatedElem.textContent = `Updating data for ${league}...`;
@@ -214,20 +262,15 @@
             }
         }
         
-        /**
-         * Combines static data with live poe.ninja data and calculates efficiency.
-         * @param {Map} ninjaMap - A Map of unique items from poe.ninja.
-         */
         function processAndCombineData(ninjaMap) {
             allItemData = STATIC_ITEM_DATA.map(localItem => {
                 const ninjaItem = ninjaMap.get(localItem.name);
                 
-                // FIX: Handle items not found on poe.ninja
                 if (!ninjaItem || !ninjaItem.chaosValue) {
                     return {
                         name: localItem.name,
                         icon: null,
-                        chaosValue: null, // Use null to signify 'not found'
+                        chaosValue: null,
                         dust84: localItem.valueilvl84,
                         efficiency84: null,
                         dust84q20: localItem.valueilvl84q20,
@@ -253,11 +296,7 @@
             renderTable();
         }
 
-        /**
-         * Renders the final data into the HTML table.
-         */
         function renderTable() {
-            // FIX: Updated sorting to push null values to the bottom.
             allItemData.sort((a, b) => {
                 const valA = a[currentSort.key];
                 const valB = b[currentSort.key];
@@ -265,9 +304,9 @@
                 const aIsNull = valA === null;
                 const bIsNull = valB === null;
 
-                if (aIsNull && bIsNull) return 0; // both null, equal
-                if (aIsNull) return 1;  // only a is null, goes to bottom
-                if (bIsNull) return -1; // only b is null, goes to bottom
+                if (aIsNull && bIsNull) return 0;
+                if (aIsNull) return 1;
+                if (bIsNull) return -1;
                 
                 if (currentSort.order === 'asc') {
                     return valA > valB ? 1 : -1;
@@ -293,25 +332,22 @@
                 const isBest84 = item.efficiency84 > 0 && item.efficiency84 === bestEfficiency && currentSort.key === 'efficiency84';
                 const isBest84q20 = item.efficiency84q20 > 0 && item.efficiency84q20 === bestEfficiency && currentSort.key === 'efficiency84q20';
 
-                // FIX: Use ternary operators to display "-" for null values.
+                // FIX: Added data-label attributes for responsive CSS
                 row.innerHTML = `
-                    <td class="p-4 font-medium flex items-center">
+                    <td data-label="Item Name" class="p-3 font-medium flex items-center">
                         <img src="${item.icon || ''}" alt="" class="h-10 w-10 mr-3 object-contain" onerror="this.style.visibility='hidden'">
                         <span>${item.name}</span>
                     </td>
-                    <td class="p-4 text-right text-green-400 font-semibold">${item.chaosValue === null ? '-' : item.chaosValue.toLocaleString(undefined, {maximumFractionDigits: 0})}</td>
-                    <td class="p-4 text-right text-cyan-400">${item.dust84.toLocaleString()}</td>
-                    <td class="p-4 text-right font-bold ${isBest84 ? 'text-yellow-400 text-lg' : ''}">${item.efficiency84 === null ? '-' : item.efficiency84.toLocaleString(undefined, {maximumFractionDigits: 0})}</td>
-                    <td class="p-4 text-right text-cyan-400">${item.dust84q20.toLocaleString()}</td>
-                    <td class="p-4 text-right font-bold ${isBest84q20 ? 'text-yellow-400 text-lg' : ''}">${item.efficiency84q20 === null ? '-' : item.efficiency84q20.toLocaleString(undefined, {maximumFractionDigits: 0})}</td>
+                    <td data-label="Chaos Value" class="p-3 text-right text-green-400 font-semibold">${item.chaosValue === null ? '-' : item.chaosValue.toLocaleString(undefined, {maximumFractionDigits: 0})}</td>
+                    <td data-label="Dust (ilvl 84)" class="p-3 text-right text-cyan-400">${item.dust84.toLocaleString()}</td>
+                    <td data-label="Dust per Chaos" class="p-3 text-right font-bold ${isBest84 ? 'text-yellow-400 text-lg' : ''}">${item.efficiency84 === null ? '-' : item.efficiency84.toLocaleString(undefined, {maximumFractionDigits: 0})}</td>
+                    <td data-label="Dust (ilvl 84 q20)" class="p-3 text-right text-cyan-400">${item.dust84q20.toLocaleString()}</td>
+                    <td data-label="Dust per Chaos (q20)" class="p-3 text-right font-bold ${isBest84q20 ? 'text-yellow-400 text-lg' : ''}">${item.efficiency84q20 === null ? '-' : item.efficiency84q20.toLocaleString(undefined, {maximumFractionDigits: 0})}</td>
                 `;
                 tableBody.appendChild(row);
             });
         }
         
-        /**
-         * Sets the current sort key and order, then re-renders the table.
-         */
         function setSort(key) {
             if (currentSort.key === key) {
                 currentSort.order = currentSort.order === 'asc' ? 'desc' : 'asc';
@@ -322,9 +358,6 @@
             renderTable();
         }
 
-        /**
-         * Main function to initialize the application
-         */
         async function initializeApp() {
             await fetchStaticData();
             await fetchLeagues();
@@ -343,4 +376,4 @@
 
     </script>
 </body>
-</html
+</html>
