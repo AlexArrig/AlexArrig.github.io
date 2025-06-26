@@ -139,29 +139,30 @@
          */
         async function fetchLeagues() {
             tableBody.innerHTML = `<tr><td colspan="6" class="text-center p-8"><span>Loading league information...</span></td></tr>`;
+            const desiredLeagues = ['Mercenaries', 'Hardcore Mercenaries', 'Standard', 'Hardcore'];
             const leagueApiUrl = 'https://api.pathofexile.com/leagues?compact=1';
             const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(leagueApiUrl)}`;
             try {
                 const response = await fetch(proxyUrl);
                 if (!response.ok) throw new Error('Network response from proxy was not ok');
                 
-                const leagues = await response.json();
+                const allLeagues = await response.json();
                 
-                const validLeagues = leagues.filter(l => 
-                    !l.id.includes('SSF') && !l.id.includes('Hardcore') && !l.id.includes('Ruthless') && l.id.toLowerCase() !== 'standard'
-                );
+                const validLeagues = allLeagues.filter(l => desiredLeagues.includes(l.id));
 
                 leagueSelect.innerHTML = validLeagues.map(league => 
                     `<option value="${league.id}">${league.id}</option>`
                 ).join('');
                 
-                if (validLeagues.length > 0) {
-                   const mercenaryLeague = validLeagues.find(l => l.id === 'Mercenaries');
-                   const defaultLeague = mercenaryLeague ? mercenaryLeague.id : validLeagues[0].id;
+                const defaultLeague = "Mercenaries";
+                if (validLeagues.some(l => l.id === defaultLeague)) {
                    leagueSelect.value = defaultLeague;
                    fetchData(defaultLeague);
-                } else {
-                   tableBody.innerHTML = `<tr><td colspan="6" class="text-center p-8 text-red-400">Could not find any active trade leagues.</td></tr>`;
+                } else if (validLeagues.length > 0) {
+                    fetchData(validLeagues[0].id);
+                }
+                else {
+                   tableBody.innerHTML = `<tr><td colspan="6" class="text-center p-8 text-red-400">None of the specified leagues (Mercenaries, Standard, etc.) could be found.</td></tr>`;
                 }
 
             } catch (error) {
