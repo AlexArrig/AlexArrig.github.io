@@ -37,21 +37,17 @@
         }
 
         /* --- RESPONSIVE TABLE STYLES --- */
-        /* On screens smaller than 768px, transform table into cards */
         @media (max-width: 768px) {
-            /* Hide the original table headers */
             .responsive-table thead {
                 display: none;
             }
-            /* Make each row a block-level card */
             .responsive-table tr {
                 display: block;
                 margin-bottom: 1rem;
                 border-radius: 0.5rem;
-                background-color: #2d3748; /* Slightly lighter than the main bg */
+                background-color: #2d3748;
                 box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             }
-             /* Remove borders between rows, as they are now cards */
             .responsive-table tr {
                 border-bottom: none;
             }
@@ -61,36 +57,38 @@
             .responsive-table tr td:last-child {
                 border-bottom: none;
             }
-            /* Make each cell a block, allowing labels to appear on top */
             .responsive-table td {
                 display: block;
-                text-align: right; /* Align value to the right */
-                padding-left: 50%; /* Make space for the label */
+                text-align: right;
+                padding-left: 50%;
                 position: relative;
             }
-            /* The magic: use the data-label attribute as the cell's label */
             .responsive-table td::before {
-                content: attr(data-label); /* Use the data-label from the td */
+                content: attr(data-label);
                 position: absolute;
-                left: 0.75rem; /* Corresponds to p-3 in Tailwind */
+                left: 0.75rem;
                 width: 45%;
                 padding-right: 0.75rem;
                 text-align: left;
                 font-weight: 600;
-                color: #a0aec0; /* Lighter text for the label */
+                color: #a0aec0;
             }
-            /* Make the first cell (Item Name) look like a card header */
             .responsive-table td:first-child {
-                text-align: left; /* Keep name aligned to the left */
+                text-align: left;
                 padding: 1rem;
-                font-size: 1.125rem; /* Larger font for the name */
+                font-size: 1.125rem;
                 font-weight: bold;
                 background-color: #4a5568;
                 border-top-left-radius: 0.5rem;
                 border-top-right-radius: 0.5rem;
             }
             .responsive-table td:first-child::before {
-                display: none; /* Don't show a label for the name */
+                display: none;
+            }
+            /* FIX: Target the long labels and reduce their font size to prevent wrapping */
+            .responsive-table td:nth-child(4)::before,
+            .responsive-table td:nth-child(6)::before {
+                font-size: 0.8rem; /* Make font slightly smaller for long labels */
             }
         }
     </style>
@@ -119,7 +117,6 @@
                 </div>
 
                 <div class="overflow-x-auto">
-                    <!-- Added a class to the table to target it with responsive CSS -->
                     <table class="w-full text-left responsive-table">
                         <thead class="bg-gray-700 text-xs text-gray-300 uppercase tracking-wider">
                             <tr>
@@ -152,7 +149,7 @@
         <footer class="text-center mt-8 text-sm text-gray-500">
             <p>Prices data sourced from <a href="https://poe.ninja" target="_blank" rel="noopener noreferrer" class="text-yellow-500 hover:underline">poe.ninja</a></p>
             <p>Uniques data fetched from <a href="https://poedb.tw/us/Kingsmarch#Disenchant" target="_blank" rel="noopener noreferrer" class="text-yellow-500 hover:underline">PoEDB</a>. API Docs from <a href="https://github.com/ayberkgezer/poe.ninja-API-Document" target="_blank" rel="noopener noreferrer" class="text-yellow-500 hover:underline">ayberkgezer</a></p>
-            <p>Created by <a href="https://www.pathofexile.com/account/view-profile/JPAlex-4984" target="_blank" rel="noopener noreferrer" class="text-yellow-500 hover:underline">AlexArrig</a>. Not affiliated with Grinding Gear Games.</p>
+            <p>Created by <a href="https://www.pathofexile.com/account/view-profile/AlexArrig" target="_blank" rel="noopener noreferrer" class="text-yellow-500 hover:underline">AlexArrig</a>. Not affiliated with Grinding Gear Games.</p>
         </footer>
     </div>
 
@@ -332,7 +329,6 @@
                 const isBest84 = item.efficiency84 > 0 && item.efficiency84 === bestEfficiency && currentSort.key === 'efficiency84';
                 const isBest84q20 = item.efficiency84q20 > 0 && item.efficiency84q20 === bestEfficiency && currentSort.key === 'efficiency84q20';
 
-                // FIX: Added data-label attributes for responsive CSS
                 row.innerHTML = `
                     <td data-label="Item Name" class="p-3 font-medium flex items-center">
                         <img src="${item.icon || ''}" alt="" class="h-10 w-10 mr-3 object-contain" onerror="this.style.visibility='hidden'">
